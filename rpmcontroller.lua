@@ -3,6 +3,12 @@ function init()
 
 	iTerm = 0
 	previousError = 0
+
+	-- propeller speed observer
+	propellerSpeedObserver = 0
+	propellerSpeedObserverTick = 0.1
+
+	previousTransmissionClutchOutput = 0
 end
 
 function clamp(l, u, value)
@@ -28,14 +34,16 @@ function onTick()
 	engineSpeed = input.getNumber(2)
 
 	-- parameters
-	neutralThreshold = input.getNumber(3)
-	neutralEngineSpeed = input.getNumber(4)
-	leverToEngineSpeedRatio = input.getNumber(5)
-	stoppedEngineSpeedThreshold = input.getNumber(6)
-	Kp = input.getNumber(7)
-	Ki = input.getNumber(8)
-	Kd = input.getNumber(9)
-	iTermAntiWindupGuard = input.getNumber(10)
+	neutralThreshold = 0.1--input.getNumber(3)
+	neutralEngineSpeed = 4--input.getNumber(4)
+	leverToEngineSpeedRatio = 10--input.getNumber(5)
+	stoppedEngineSpeedThreshold = 0.5--input.getNumber(6)
+	Kp = 3--input.getNumber(7)
+	Ki = 0.1--input.getNumber(8)
+	Kd = 3--input.getNumber(9)
+	iTermAntiWindupGuard = 10--input.getNumber(10)
+	stallingEngineSpeedThreshold = 3--input.getNumber(3) --3
+	clutchTick = 0.005--input.getNumber(4)
 
 	-- debug
 	mode = "kill engine"
@@ -53,6 +61,11 @@ function onTick()
 	elseif crankingRequest then 
 		-- cranking
 		mode = "cranking"
+		transmissionClutchOutput = 0
+		engineSpeedSetpoint = 0 -- throttle will be set directly
+	elseif engineSpeed < stallingEngineSpeedThreshold then
+		-- cranking
+		mode = "anti stall"
 		transmissionClutchOutput = 0
 		engineSpeedSetpoint = 0 -- throttle will be set directly
 	elseif engineSpeed < stoppedEngineSpeedThreshold then
@@ -73,18 +86,21 @@ function onTick()
 			mode = "regular"
 			transmissionClutchOutput = 1
 		end
-		engineSpeedSetpoint = leverRequest * leverToEngineSpeedRatio
+		engineSpeedSetpoint = math.abs(leverRequest) * leverToEngineSpeedRatio
+		engineSpeedSetpoint = clamp(neutralThreshold, 100, engineSpeedSetpoint)
 	end
-	
+
 	-- gear switcher
 	if leverRequest > 0 then
+		gear = 1
 		reverseGearEnabledOutput = false
 	else
+		gear = -1
 		reverseGearEnabledOutput = true
 	end
 
 	-- PID controller
-	if mode == "throttle only" or mode == "regular" then
+	if mode == "throttle only" or mode == "regular" or mode == "neutral" then
 		error = engineSpeedSetpoint - engineSpeed
 		deltaError = error - previousError
 		previousError = error
@@ -96,15 +112,38 @@ function onTick()
 
 		engineThrottleOutput = pTerm + iTerm + dTerm
 		engineThrottleOutput = clamp(0, 1, engineThrottleOutput)
-	elseif mode == "cranking" then
+	elseif mode == "cranking" or mode == "anti stall" then
+		iTerm = 0.2
+		previousError = 0
+
 		engineThrottleOutput = 0.2
 	elseif mode == "kill engine" or mode == "stopped" then
 		engineThrottleOutput = 0
 	end
+
+	-- limit clutch step
+	if transmissionClutchOutput > previousTransmissionClutchOutput then
+		--transmissionClutchOutput = clamp(0, previousTransmissionClutchOutput, previousTransmissionClutchOutput + clutchTick)
+		transmissionClutchOutput = previousTransmissionClutchOutput + clutchTick
+	end
+	previousTransmissionClutchOutput = transmissionClutchOutput
 		
 	output.setNumber(1, transmissionClutchOutput)
 	output.setNumber(2, engineThrottleOutput)
 	output.setBool(1, reverseGearEnabledOutput)
+
+	-- propeller speed observer
+	if transmissionClutchOutput == 0 then
+		if propellerSpeedObserver > propellerSpeedObserverTick then
+			propellerSpeedObserver = propellerSpeedObserver - propellerSpeedObserverTick
+		elseif propellerSpeedObserver < -propellerSpeedObserverTick then
+			propellerSpeedObserver = propellerSpeedObserver + propellerSpeedObserverTick
+		else
+			propellerSpeedObserver = 0	
+		end
+	else
+		propellerSpeedObserver = gear * engineSpeed * transmissionClutchOutput
+	end
 end
 
 function onDraw()
@@ -124,6 +163,9 @@ function onDraw()
 	screen.drawText(w/2, 55, "Ki: " .. tostring(Ki))
 	screen.drawText(w/2, 65, "Kd: " .. tostring(Kd))
 	screen.drawText(w/2, 85, "iTermAntiWindupGuard: " .. tostring(iTermAntiWindupGuard))
+
+	screen.drawText(w/2, 105, "propObs: " .. tostring(propellerSpeedObserver))
+	screen.drawText(w/2, 115, "gear: " .. tostring(gear))
 
 
 	screen.drawText(5, 45, "mode: " .. mode)

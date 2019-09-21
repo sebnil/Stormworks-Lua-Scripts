@@ -35,15 +35,15 @@ function onTick()
 
 	-- parameters
 	neutralThreshold = 0.1--input.getNumber(3)
-	neutralEngineSpeed = 4--input.getNumber(4)
-	leverToEngineSpeedRatio = 10--input.getNumber(5)
+	neutralEngineSpeed = 3--input.getNumber(4)
+	leverToEngineSpeedRatio = 20--input.getNumber(5)
 	stoppedEngineSpeedThreshold = 0.5--input.getNumber(6)
 	Kp = 3--input.getNumber(7)
 	Ki = 0.1--input.getNumber(8)
 	Kd = 3--input.getNumber(9)
 	iTermAntiWindupGuard = 10--input.getNumber(10)
-	stallingEngineSpeedThreshold = 3--input.getNumber(3) --3
-	clutchTick = 0.005--input.getNumber(4)
+	stallingEngineSpeedThreshold = 2.5--input.getNumber(3) --3
+	clutchTick = 0.003--input.getNumber(4)
 
 	-- debug
 	mode = "kill engine"

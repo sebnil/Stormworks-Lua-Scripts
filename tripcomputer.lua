@@ -23,18 +23,8 @@ end
 function onTick()
 	-- inputs
 	fluidMax = input.getNumber(1)
-	speedInMetersPerSecond = input.getNumber(2)
-	fluid1 = input.getNumber(3)
-	fluid2 = input.getNumber(4)
-	fluid3 = input.getNumber(5)
-	fluid4 = input.getNumber(6)
-	fluid5 = input.getNumber(7)
-	fluid6 = input.getNumber(8)
-	fluid7 = input.getNumber(9)
-	fluid8 = input.getNumber(10)
-
-	-- calculations
-	fluidTotal = fluid1 + fluid2 + fluid3 + fluid4 + fluid5 + fluid6 + fluid7 + fluid8
+	fluidTotal = input.getNumber(2)
+	speedInMetersPerSecond = input.getNumber(3)
 
 	-- do init a bit later to warmup filters
 	if not init_was_run then

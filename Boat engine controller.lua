@@ -1,3 +1,5 @@
+-- Features: Controls engine speed, automatic clutch and cranking
+
 function init()
 	init_was_run = true
 

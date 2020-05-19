@@ -1,3 +1,5 @@
+-- Features: Calculates total fuel, fuel percentage, fuel rate, time to empty, distance to empty
+
 function init()
 	init_was_run = true
 
